@@ -5,4 +5,5 @@
 * Gcode: Remove eurorack assumptions by default (make it a flag)
 * Gcode: Support different drilling cycles (e.g. simple feed, G83)
 * GCode: support work coordinate offsets other than G53
+* GCode: better inter-component toolpaths (approx travelling salesman solver)
 * Fix all the bugs
