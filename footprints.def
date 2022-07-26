@@ -1,0 +1,23 @@
+# Format for this file is footprint name followed by parameters:
+# Optional: offset(x, y) to offset the location of the cutout
+# Required: either hole(diameter) or rect(width, height) to specify cutout shape
+# Optional: permit_back to force inclusion component on the back side of board
+
+"Alcoswitch:SW_Tactile_FSM" hole(3.4)
+"Alpha:SW_Rotary_Alpha_SR1712F" hole(9.5)
+"ALPS:EC11K15" offset(0.0, -2.0) hole(9.3)
+"Connector_Audio:Jack_3.5mm_QingPu_WQP-PJ398SM_Vertical_CircularHoles" offset(0.0, 6.48) hole(6.6)
+"Connector_USB:USB_B_TE_5787834_Vertical" offset(-8.25, -4.75) rect(14, 13) # XXX not quite right
+"djm:ADM0802-FSY-YBS" offset(-19, -7.6) rect(37.8, 24.4)
+"E-Switch:SW_Toggle_DP3T_ESwitch_100DP6" hole(6.5)
+"LED_THT:LED_D3.0mm-3" offset(2.54, 0.0) hole(3.2)
+"LED_THT:LED_D3.0mm" offset(1.27, 0.0) hole(3.2)
+"MountingHole:MountingHole_3.2mm_M3" hole(3.2) permit_back
+"Multicomp:SW_Toggle_DPDT_Multicomp_2MD1T2B2M2RE" hole(5.5)
+"Multicomp:SW_Toggle_DPDT_Multicomp_2MS1T2B2M2RE" hole(5) # NB. incorrect name.
+"Multicomp:SW_Toggle_SPDT_Multicomp_2MS1T2B2M2RE" hole(5)
+"Thonk:Jack_3.5mm_Stereo_Thonk_Iconn_QingPu_WQP-PJ366ST_Vertical_CircularHoles_Smaller_Central" hole(6.6)
+"Thonk:Jack_3.5mm_Thonk_Iconn_QingPu_WQP-PJ398SM_Vertical_CircularHoles_Smaller_Central" hole(6.6)
+"Thonk:Jack_3.5mm_Thonk_Iconn_QingPu_WQP-PJ398SM_Vertical_CircularHoles_Smaller" offset(0.0, 6.48) hole(6.6)
+"Thonk:Potentiometer_Thonk_Alpha_9mm_Vertical" hole(7.2)
+"Thonk:Potentiometer_Thonk_Song_Huei_9mm_Vertical" hole(6.4)
