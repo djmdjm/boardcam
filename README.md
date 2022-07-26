@@ -7,7 +7,8 @@ such as LEDs, displays, switches, pots, etc.
 
 Various output formats are supported, including SVG (which can be used
 for laser-cutting or as the basis for artwork), OpenSCAD, GCode for a
-CNC mill or a CSV list of drill hits/cuts for manual machining.
+[CNC mill](https://youtu.be/DN982OtSqbw) or a CSV list of drill hits/cuts
+for manual machining.
 
 Most of my front panels are for eurorack synthesisers, so some of the
 output modes (e.g. GCode) make strong assumptions about panel dimensions,
