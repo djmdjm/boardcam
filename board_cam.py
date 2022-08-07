@@ -614,10 +614,12 @@ def output_svg(args, panelbrd, width=None, height=None, xoff=0.0, yoff=0.0,
 			    stroke="black", stroke_width=0.2 * svgwrite.mm))
 			# Add text
 			textpos = (svg_mm(xpos), svg_mm(ypos + rad + text_yoff))
-			grp.add(sd.text(component.reference, insert=textpos,
+			t = sd.text(component.reference, insert=textpos,
 			    fill="black", text_anchor="middle",
 			    font_family="sans-serif", font_size=8,
-			    id="T-"+component.reference))
+			    id="T-"+component.reference)
+			t["xml:space"] = "preserve"
+			grp.add(t)
 		elif component.rect_x1 is not None:
 			rect_x1 = component.rect_x1 + xoff
 			rect_y1 = component.rect_y1 + yoff
