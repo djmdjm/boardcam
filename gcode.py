@@ -428,6 +428,7 @@ class GCodeOutput(object):
 		self.C("FINISH")
 	def add_panel_cutout(self):
 		"""Prepare operations to cut out the panel"""
+		raise NotImplementedError("Untested code; needs work")
 		tool = self.toolcfg.mill_tool()
 		need = min(self.eurorack_width, self.eurorack_height)
 		if tool.dia * 2.0 > need:
@@ -481,6 +482,7 @@ class GCodeOutput(object):
 			    self.eurorack_height - 3.0))
 	def output_panel_cutout(self):
 		"""Emit GCode to cut out the panel"""
+		raise NotImplementedError("Untested code; needs work")
 		tool = self.toolcfg.mill_tool()
 		self.C("START panel cutout")
 		self.G("M1")
