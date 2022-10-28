@@ -351,7 +351,8 @@ class GCodeOutput(object):
 		if len(candidate_drills) == 0:
 			print(("No suitable start drill for {} (need {}) " +
 			    "mill tool #{} dia {:0.3f}").format(
-			    component.ref, need, tool.num, tool.dia))
+			    component.ref, need, tool.num, tool.dia),
+			    file=sys.stderr)
 			sys.exit(1)
 		# Pick the smallest available drill.
 		return sorted(candidate_drills)[0]
