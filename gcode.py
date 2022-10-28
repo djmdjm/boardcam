@@ -28,6 +28,7 @@ _tokens = {
 	"tool":		False,
 	"dia":		False,
 	"downfeed":	False,
+	"stepdown":	False,
 	"feed":		False,
 	"speed":	False,
 	"type":		False,
@@ -41,9 +42,11 @@ _validtypes = set(("drill", "endmill"))
 class GCodeTool(object):
 	"""Records information about a tool used in GCode generation"""
 	__slots__ = [
-		"num", "dia", "downfeed", "feed", "speed", "tooltype"
+		"num", "dia", "downfeed", "stepdown", "feed", "speed",
+		"tooltype"
 	 ]
-	def __init__(self, num, dia, feed, speed, tooltype, downfeed=None):
+	def __init__(self, num, dia, feed, speed, tooltype,
+	    downfeed=None, stepdown=None):
 		self.num = int(num)
 		self.dia = float(dia)
 		self.feed = float(feed)
@@ -56,7 +59,10 @@ class GCodeTool(object):
 			self.downfeed = float(feed)
 		else:
 			self.downfeed = float(downfeed)
-
+		if stepdown is None:
+			self.stepdown = self.dia / 16
+		else:
+			self.stepdown = float(stepdown)
 class GCodeToolTable(object):
 	def __init__(self, path):
 		self.predrill = None
@@ -146,10 +152,12 @@ class GCodeToolTable(object):
 		# This is a tool definition line.
 		if "downfeed" not in tokens:
 			tokens["downfeed"] = None
+		if "stepdown" not in tokens:
+			tokens["stepdown"] = None
 		try:
 			return GCodeTool(tokens["tool"], tokens["dia"],
 			    tokens["feed"], tokens["speed"], tokens["type"],
-			    tokens["downfeed"])
+			    tokens["downfeed"], tokens["stepdown"])
 		except KeyError as err:
 			raise ValueError(
 			    "tool definition missing required attribute {}".
@@ -312,10 +320,6 @@ class GCodeOutput(object):
 		for rc in self.rect_cutouts + self.round_cutouts:
 			drill_dia = self.start_drill(rc)
 			rc.add_start(drill_dia)
-			descr = "{} cutout entry hole".format(rc.ref)
-			drillhit = GCodeDrillHit(descr, rc.footprint,
-			    drill_dia, rc.depth, rc.xstart, rc.ystart)
-			self.add_drill(drillhit)
 
 		cutout_key = operator.attrgetter("xstart", "ystart")
 		self.rect_cutouts.sort(key=cutout_key)
@@ -524,7 +528,6 @@ class GCodeOutput(object):
 		self.G("T{} M6   ; Tool {}: {:0.1f}mm endmill",
 		    tool.num, tool.num, tool.dia)
 		self.G("G43 H{}", tool.num)
-		self.G("S{:0.3f} M3", tool.speed)
 		for rc in self.rect_cutouts:
 			depth = rc.depth + self.mill_depth_clearance
 			self.C("BEGIN cutout {} ({})", rc.ref, rc.footprint)
@@ -532,24 +535,32 @@ class GCodeOutput(object):
 			    "Y{:0.3f}-Y{:0.3f} H{:0.3f}",
 			    rc.x1, rc.x2, rc.x2 - rc.x1,
 			    rc.y1, rc.y2, rc.y1 - rc.y2)
+			self.C("Stepdown {}", tool.stepdown)
 			# Move to start position near top left.
 			self.G("G0 X{:0.3f} Y{:0.3f} Z{:0.3f}  ; entry",
 			    rc.xstart, rc.ystart, self.hover)
+			self.G("S{:0.3f} M3", tool.speed)
 			self.coolant_on()
-			self.G("G1 F{:0.3f} Z{:0.3f}", tool.downfeed, -depth)
+			zpos = tool.stepdown
+			self.G("G1 F{:0.3f} Z{:0.3f}", tool.downfeed, zpos)
 			# Top edge 1xdia off left, enabling RHS cutter comp.
 			self.G("G42 D{} F{} X{:0.3f} Y{:0.3f}", tool.num,
 			    tool.feed, rc.x1 + tool.dia, rc.y1);
-			# Top right
-			self.G("X{:0.3f}", rc.x2)
-			# Bottom right
-			self.G("Y{:0.3f}", rc.y2)
-			# Bottom left
-			self.G("X{:0.3f}", rc.x1)
-			# Top left
-			self.G("Y{:0.3f}", rc.y1)
-			# A little past start point.
-			self.G("X{:0.3f}", min(rc.xstart + tool.dia, rc.x2))
+			while zpos > -depth:
+				zpos = max(zpos - tool.stepdown, -depth)
+				# Drop
+				self.G("G1 F{} Z{:0.3f}", tool.downfeed, zpos)
+				# Top right
+				self.G("G1 F{} X{:0.3f}", tool.feed, rc.x2)
+				# Bottom right
+				self.G("Y{:0.3f}", rc.y2)
+				# Bottom left
+				self.G("X{:0.3f}", rc.x1)
+				# Top left
+				self.G("Y{:0.3f}", rc.y1)
+				# A little past start point.
+				self.G("X{:0.3f}",
+				    min(rc.xstart + tool.dia, rc.x2))
 			self.G("G40")
 			self.coolant_off()
 			self.G("G0 Z{:0.3f}", self.hover)
@@ -566,7 +577,6 @@ class GCodeOutput(object):
 		self.G("T{} M6   ; Tool {}: {:0.1f}mm endmill",
 		    tool.num, tool.num, tool.dia)
 		self.G("G43 H{}", tool.num)
-		self.G("S{:0.3f} M3", tool.speed)
 		for rc in self.round_cutouts:
 			depth = rc.depth + self.mill_depth_clearance
 			self.C("BEGIN cutout {} ({})", rc.ref, rc.footprint)
@@ -575,13 +585,19 @@ class GCodeOutput(object):
 			# Move to recorded start position
 			self.G("G0 X{:0.3f} Y{:0.3f} Z{:0.3f}  ; entry",
 			    rc.xstart, rc.ystart, self.hover)
+			self.G("S{:0.3f} M3", tool.speed)
 			self.coolant_on()
-			self.G("G1 F{:0.3f} Z{:0.3f}", tool.downfeed, -depth)
+			zpos = tool.stepdown
+			self.G("G1 F{:0.3f} Z{:0.3f}", tool.downfeed, zpos)
 			# Enabling RHS cutter comp and move to left edge.
 			self.G("G42 D{} F{} X{:0.3f}", tool.num,
 			    tool.feed, rc.xpos - (rc.dia/2), rc.ypos);
-			# Circle
-			self.G("G17 G02 F{} I{}", tool.feed, rc.dia/2)
+			while zpos > -depth:
+				zpos = max(zpos - tool.stepdown, -depth)
+				# Drop
+				self.G("G1 F{} Z{:0.3f}", tool.downfeed, zpos)
+				# Circle
+				self.G("G17 G02 F{} I{}", tool.feed, rc.dia/2)
 			self.G("G40")
 			self.coolant_off()
 			self.G("G0 Z{:0.3f}", self.hover)
