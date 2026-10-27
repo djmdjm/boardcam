@@ -211,7 +211,10 @@ class PanelComponent(object):
 			self.reference = module.GetReference()
 			self.pos_x = pcbnew.ToMM(module.GetPosition().x)
 			self.pos_y = pcbnew.ToMM(module.GetPosition().y)
-			self.orient = module.GetOrientation() / 10.0
+			if hasattr(module, 'GetOrientationDegrees'):
+				self.orient = module.GetOrientationDegrees()
+			else:
+				self.orient = module.GetOrientation() / 10.0
 		else:
 			if reference is None or footprint is None or \
 			    pos_x is None or pos_y is None or orient is None:
@@ -323,8 +326,8 @@ class PanelBoard:
 				    "({:.3f},{:.3f} - {:.3f},{:.3f}) "+
 				    "size {:.3f}x{:.3f}").format(
 				    origin[0], origin[1], end[0], end[1],
-				    pcbnew.ToMM(poly.GetSize().GetWidth()),
-				    pcbnew.ToMM(poly.GetSize().GetHeight())),
+				    pcbnew.ToMM(poly.GetWidth()),
+				    pcbnew.ToMM(poly.GetHeight())),
 				    file=sys.stderr)
 				self.board_bounds = poly
 				break
@@ -388,11 +391,17 @@ class PanelBoard:
 		"""Find the set of contiguous board outline polygons. Returns
 		   a list of line start+end points."""
 		edges = []
-		for dwg in board.GetDrawings():
-			if (hasattr(pcbnew, "PCB_LINE_T") and
-			   dwg.Type() != pcbnew.PCB_LINE_T):
-				continue
-			elif dwg.Type() != pcbnew.PCB_SHAPE_T:
+		if hasattr(board, 'Drawings'):
+			# Some KiCad SWIG bindings still call the removed Python 2
+			# iterator.next(). Index the container and cast items instead.
+			items = board.Drawings()
+			drawings = (items[i].Cast() for i in range(len(items)))
+		else:
+			drawings = board.GetDrawings()
+		shape_types = (getattr(pcbnew, 'PCB_LINE_T', None),
+		    getattr(pcbnew, 'PCB_SHAPE_T', None))
+		for dwg in drawings:
+			if dwg.Type() not in shape_types:
 				continue
 			if dwg.GetLayer() != pcbnew.Edge_Cuts:
 				continue
@@ -402,7 +411,7 @@ class PanelBoard:
 		# Find coincident edge groups.
 		by_coord = {}
 		for edge in edges:
-			if edge.Type() == pcbnew.SH_POLY_SET and \
+			if hasattr(edge, 'GetPolyShape') and \
 			   edge.GetPolyShape().OutlineCount() != 0:
 				chain = edge.GetPolyShape().COutline(0)
 				last = None
@@ -430,7 +439,7 @@ class PanelBoard:
 					by_coord[start] = []
 				if end not in by_coord:
 					by_coord[end] = []
-				by_coord[end].append((start, end))
+				by_coord[start].append((start, end))
 				if start != end:
 					by_coord[end].append((start, end))
 		contiguous = {}
@@ -501,7 +510,10 @@ class PanelBoard:
 				    file=sys.stderr)
 			if None in (xmin, ymin, xmax, ymax):
 				continue
-			rect = pcbnew.EDA_RECT()
+			if hasattr(pcbnew, 'BOX2I'):
+				rect = pcbnew.BOX2I()
+			else:
+				rect = pcbnew.EDA_RECT()
 			rect.SetOrigin(pcbnew.FromMM(xmin), pcbnew.FromMM(ymin))
 			rect.SetEnd(pcbnew.FromMM(xmax), pcbnew.FromMM(ymax))
 			rect.Normalize()
@@ -580,9 +592,9 @@ def output_svg(args, panelbrd, width=None, height=None, xoff=0.0, yoff=0.0,
 	if bounds is None and (width is None or height is None):
 		raise ValueError("Cannot determine extents; no components?")
 	if width is None:
-		width = pcbnew.ToMM(bounds.GetSize().GetWidth())
+		width = pcbnew.ToMM(bounds.GetWidth())
 	if height is None:
-		height = pcbnew.ToMM(bounds.GetSize().GetHeight())
+		height = pcbnew.ToMM(bounds.GetHeight())
 	print("SVG drawing size is {:.3f}x{:.3f}mm".format(width, height),
 	    file=sys.stderr)
 	sd = svgwrite.Drawing(filename="board.svg", profile="tiny",
@@ -644,8 +656,8 @@ def output_eurorack_svg(args, panelbrd):
 		bounds = panelbrd.bounds
 	if bounds is None:
 		raise ValueError("Cannot determine extents; no components?")
-	width = pcbnew.ToMM(bounds.GetSize().GetWidth())
-	height = pcbnew.ToMM(bounds.GetSize().GetHeight())
+	width = pcbnew.ToMM(bounds.GetWidth())
+	height = pcbnew.ToMM(bounds.GetHeight())
 	if width <= 0:
 		raise ValueError("Board too thin")
 	if height > 110:
@@ -666,8 +678,8 @@ def output_eurorack_openscad(args, panelbrd):
 		bounds = panelbrd.bounds
 	if bounds is None:
 		raise ValueError("Cannot determine extents; no components?")
-	width = pcbnew.ToMM(bounds.GetSize().GetWidth())
-	height = pcbnew.ToMM(bounds.GetSize().GetHeight())
+	width = pcbnew.ToMM(bounds.GetWidth())
+	height = pcbnew.ToMM(bounds.GetHeight())
 	if width <= 0:
 		raise ValueError("Board too thin")
 	if height > 110:

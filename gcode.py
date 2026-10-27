@@ -262,12 +262,12 @@ class GCodeOutput(object):
 		# Prepare the board.
 		bounds = panelbrd.board_bounds
 		if bounds is None:
-			self.bounds = panelbrd.bounds
+			bounds = panelbrd.bounds
 		if bounds is None:
 			raise ValueError("Cannot determine extents; "+
 			    "no components?")
-		self.width = pcbnew.ToMM(bounds.GetSize().GetWidth())
-		self.height = pcbnew.ToMM(bounds.GetSize().GetHeight())
+		self.width = pcbnew.ToMM(bounds.GetWidth())
+		self.height = pcbnew.ToMM(bounds.GetHeight())
 		if self.width <= 0:
 			raise ValueError("Board too thin")
 		if self.height > 110:
