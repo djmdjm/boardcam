@@ -10,6 +10,8 @@ for laser-cutting or as the basis for artwork), OpenSCAD, GCode for a
 [CNC mill](https://youtu.be/DN982OtSqbw) or a CSV list of drill hits/cuts
 for manual machining.
 
+Native FreeCAD models of Eurorack panels are also supported.
+
 Most of my front panels are for eurorack synthesisers, so some of the
 output modes (e.g. GCode) make strong assumptions about panel dimensions,
 etc.
@@ -29,6 +31,25 @@ $ ./board_cam.py --skip_components=SW2 \
       --format=gcode ~/projects/midicv/midicv.kicad_pcb > midicv.nc
 ```
 
+Generate a native FreeCAD model of a 2 mm thick Eurorack front panel:
+
+```
+$ ./board_cam.py --format=eurorack_freecad --freecad_output=panel.FCStd \
+      ~/projects/midicv/midicv.kicad_pcb
+```
+
+This writes `panel.FCStd` directly (the default output filename), with an
+editable panel blank and a sequence of cuts for the mounting and component
+holes. The panel is 128.5 mm tall, its width is rounded up to a whole HP
+(5.08 mm), and the PCB is centered within it. Circular and rotated rectangular
+component cutouts are supported. Coordinates use the bottom-left panel corner
+as the origin, with the thickness extending from Z=0 to Z=2 mm.
+The file opens with the finished panel visible and a top view centered and
+zoomed to include the whole model.
+Panels from 2 through 8 HP have two 3.2 mm mounting holes, 7.5 mm from the
+left edge and 3 mm from the top and bottom; wider panels have a second column
+7.5 mm from the right edge. 1 HP panels have no mounting holes.
+
 ## Dependencies
 
 This tool requires Python 3.x, KiCad and its associated Python support to
@@ -37,6 +58,11 @@ be installed.
 If you want to use the SVG output mode then the
 [svgwrite](https://pypi.org/project/svgwrite/) Python module must also be
 installed.
+
+The `eurorack_freecad` output mode additionally requires FreeCAD's command-line
+executable (`FreeCADCmd` or `freecadcmd`) on `PATH`. Use `--freecad_command`
+to specify its path if needed. FreeCAD runs without its GUI in a separate
+process, so its Python version can differ from KiCad's.
 
 ## Footprints
 

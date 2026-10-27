@@ -30,6 +30,7 @@ import csv
 import re
 
 import gcode
+import freecad_panel
 
 # Optional extras
 try:
@@ -723,6 +724,52 @@ def output_eurorack_openscad(args, panelbrd):
 		    component.rect_y2 - component.rect_y1))
 	print("}")
 
+def output_eurorack_freecad(args, panelbrd):
+	bounds = panelbrd.board_bounds
+	if bounds is None:
+		bounds = panelbrd.bounds
+	if bounds is None:
+		raise ValueError("Cannot determine extents; no components?")
+	width = pcbnew.ToMM(bounds.GetWidth())
+	height = pcbnew.ToMM(bounds.GetHeight())
+	if width <= 0:
+		raise ValueError("Board too thin")
+	if height > 110:
+		raise ValueError("Board too tall for eurorack module")
+	eurorack_height = 128.5
+	hp = int(math.ceil(width / 5.08))
+	xoff = ((5.08 * hp) - width) / 2
+	yoff = (eurorack_height - height) / 2
+	print("board requires {} HP ({:.2f}mm)".format(hp, hp * 5.08),
+	    file=sys.stderr)
+	cutouts = []
+	for component in panelbrd.components:
+		if component.hole_dia is not None:
+			cutouts.append(dict(name=component.reference,
+			    shape='circle', diameter=component.hole_dia,
+			    x=component.hole_x + xoff,
+			    y=eurorack_height - (component.hole_y + yoff)))
+		elif component.rect_x1 is not None:
+			# Retain the actual rectangle and its rotation, rather than
+			# using the diagonal's axis-aligned bounding box.
+			rect_height = component.params.rect_height
+			theta = math.radians(component.orient)
+			cutouts.append(dict(name=component.reference,
+			    shape='rectangle', width=component.params.rect_width,
+			    height=rect_height, angle=component.orient,
+			    x=component.rect_x1 + xoff + rect_height * math.sin(theta),
+			    y=eurorack_height - (component.rect_y1 + yoff) -
+			    rect_height * math.cos(theta)))
+	job = dict(width=hp * 5.08, height=eurorack_height, thickness=2.0,
+	    hp=hp, cutouts=cutouts)
+	try:
+		freecad_panel.write_model(job, args.freecad_output,
+		    args.freecad_command)
+	except (OSError, RuntimeError) as err:
+		raise SystemExit(str(err))
+	print("FreeCAD model written to {}".format(args.freecad_output),
+	    file=sys.stderr)
+
 if __name__ == '__main__':
 	outputters = {
 		"none": None,
@@ -731,6 +778,7 @@ if __name__ == '__main__':
 		"svg": output_svg,
 		"eurorack_openscad": output_eurorack_openscad,
 		"eurorack_svg": output_eurorack_svg,
+		"eurorack_freecad": output_eurorack_freecad,
 		"gcode": gcode.output_gcode,
 	}
 	parser = argparse.ArgumentParser()
@@ -754,6 +802,11 @@ if __name__ == '__main__':
 	parser.add_argument("--gcode_tool_config",
 	    help="Path to G-code tool configuration file", default="tools.cfg",
 	    type=str)
+	parser.add_argument("--freecad_output",
+	    help="output .FCStd file for eurorack_freecad (default: panel.FCStd)",
+	    default="panel.FCStd")
+	parser.add_argument("--freecad_command",
+	    help="path to FreeCADCmd/freecadcmd (default: search PATH)")
 	parser.add_argument("--gcode_cutout_panel",
 	    help="G-code should include cutout of Eurorack panel",
 	    default=False, type=bool)
