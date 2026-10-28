@@ -18,7 +18,7 @@
 "Multicomp:SW_Toggle_DPDT_Multicomp_2MD1T2B2M2RE" hole(5.5)
 "Multicomp:SW_Toggle_DPDT_Multicomp_2MS1T2B2M2RE" hole(5.5) # NB. incorrect name.
 "Multicomp:SW_Toggle_SPDT_Multicomp_2MS1T2B2M2RE" hole(5.5)
-"Newhaven_Display:M0216SD-162SDAR2-1" offset(-39, -12) rect(75, 26)
+"Newhaven_Display:M0216SD-162SDAR2-1" offset(-39.25, -12) rect(75.5, 26)
 "Thonk:Jack_3.5mm_Stereo_Thonk_Iconn_QingPu_WQP-PJ366ST_Vertical_CircularHoles_Smaller_Central" hole(6.6)
 "Thonk:Jack_3.5mm_Thonk_Iconn_QingPu_WQP-PJ398SM_Vertical_CircularHoles_Smaller_Central" hole(6.6)
 "Thonk:Jack_3.5mm_Thonk_Iconn_QingPu_WQP-PJ398SM_Vertical_CircularHoles_Smaller" offset(0.0, 6.48) hole(6.6)
