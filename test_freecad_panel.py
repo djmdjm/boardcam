@@ -36,14 +36,48 @@ class FreeCADPanelTests(unittest.TestCase):
 import FreeCAD as App
 doc = App.openDocument({filename!r})
 panel = doc.Objects[-1]
+sketch = doc.getObject('Sketch')
 shape = panel.Shape
 bounds = shape.BoundBox
 data = dict(valid=shape.isValid(), solids=len(shape.Solids),
             size=[bounds.XLength, bounds.YLength, bounds.ZLength],
             volume=shape.Volume,
+            sketch_count=sum(o.TypeId == 'Sketcher::SketchObject' for o in doc.Objects),
+            pad_count=sum(o.TypeId == 'PartDesign::Pad' for o in doc.Objects),
+            cut_count=sum(o.TypeId == 'Part::Cut' for o in doc.Objects),
+            profile=panel.Profile[0].Name,
+            tip=doc.getObject('Body').Tip.Name,
+            fully_constrained=sketch.FullyConstrained,
+            construction=sum(sketch.getConstruction(i)
+                             for i in range(sketch.GeometryCount)),
             visible=[obj.Label for obj in doc.Objects if obj.Visibility],
             probes=[shape.isInside(App.Vector(*p), 1e-7, True)
                     for p in {probes!r}])
+names = [constraint.Name for constraint in sketch.Constraints]
+if 'J1Diameter' in names and 'R0Width' in names:
+    def point(constraint_name, pos):
+        geometry = sketch.Constraints[names.index(constraint_name)].First
+        return sketch.getPoint(geometry, pos)
+    circle_before = point('J1Diameter', 3)
+    rectangle_before = point('R0Width', 1)
+    left_before = point('Mount_1_1Diameter', 3)
+    right_before = point('Mount_2_1Diameter', 3)
+    offset = sketch.getDatum('BoardOffsetX').Value
+    sketch.setDatum('BoardOffsetX', App.Units.Quantity(str(offset + 1) + ' mm'))
+    doc.recompute()
+    data['pcb_shift'] = [point('J1Diameter', 3).x - circle_before.x,
+                         point('R0Width', 1).x - rectangle_before.x,
+                         point('Mount_1_1Diameter', 3).x - left_before.x,
+                         point('Mount_2_1Diameter', 3).x - right_before.x]
+    sketch.setDatum('J1Diameter', App.Units.Quantity('7 mm'))
+    doc.recompute()
+    data['resized_volume'] = panel.Shape.Volume
+    width = sketch.getDatum('PanelWidth').Value
+    sketch.setDatum('PanelWidth', App.Units.Quantity(str(width + 2) + ' mm'))
+    doc.recompute()
+    data['mount_shift'] = [point('Mount_1_1Diameter', 3).x - left_before.x,
+                           point('Mount_2_1Diameter', 3).x - right_before.x]
+    data['edited_valid'] = panel.Shape.isValid() and sketch.FullyConstrained
 with open({report!r}, 'w') as stream:
     json.dump(data, stream)
 App.closeDocument(doc.Name)
@@ -115,7 +149,22 @@ App.closeDocument(doc.Name)
                   4 * math.pi * 1.6 ** 2 - 5 * 6 * 4) * 2
         self.assertAlmostEqual(report['volume'], volume, places=5)
         self.assertEqual(report['probes'], expected)
-        self.assertEqual(report['visible'], ['Front panel'])
+        self.assertEqual(report['visible'], ['Panel body', 'Front panel'])
+        self.assertEqual(report['sketch_count'], 1)
+        self.assertEqual(report['pad_count'], 1)
+        self.assertEqual(report['cut_count'], 0)
+        self.assertEqual(report['profile'], 'Sketch')
+        self.assertEqual(report['tip'], 'Pad')
+        self.assertTrue(report['fully_constrained'])
+        self.assertEqual(report['construction'], 4)
+        for actual, wanted in zip(report['pcb_shift'], (1, 1, 0, 0)):
+            self.assertAlmostEqual(actual, wanted)
+        for actual, wanted in zip(report['mount_shift'], (0, 2)):
+            self.assertAlmostEqual(actual, wanted)
+        self.assertAlmostEqual(report['resized_volume'],
+                               volume - math.pi * (3.5 ** 2 - 3.3 ** 2) * 2,
+                               places=5)
+        self.assertTrue(report['edited_valid'])
         # App.Visibility alone does not establish visibility when opened in
         # the GUI. Check the saved view-provider flags and actual Coin camera.
         with zipfile.ZipFile(output) as archive:
@@ -124,9 +173,7 @@ App.closeDocument(doc.Name)
         visible = [provider.attrib['name'] for provider in providers
                    if provider.find('./Properties/Property[@name="Visibility"]/Bool')
                    .attrib['value'] == 'true']
-        self.assertEqual(len(visible), 1)
-        self.assertEqual(visible[0], providers[-1].attrib['name'])
-        self.assertTrue(visible[0].startswith('Cut'))
+        self.assertEqual(visible, ['Body', 'Pad'])
         from pivy import coin
         camera_input = coin.SoInput()
         camera_input.setBuffer(gui.find('Camera').attrib['settings'])

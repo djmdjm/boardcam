@@ -38,14 +38,22 @@ $ ./board_cam.py --format=eurorack_freecad --freecad_output=panel.FCStd \
       ~/projects/midicv/midicv.kicad_pcb
 ```
 
-This writes `panel.FCStd` directly (the default output filename), with an
-editable panel blank and a sequence of cuts for the mounting and component
-holes. The panel is 128.5 mm tall, its width is rounded up to a whole HP
+This writes `panel.FCStd` directly (the default output filename), with a
+single fully constrained sketch in a Part Design body and a single 2 mm pad.
+The sketch contains the panel outline and all mounting and component holes.
+The panel is 128.5 mm tall, its width is rounded up to a whole HP
 (5.08 mm), and the PCB is centered within it. Circular and rotated rectangular
 component cutouts are supported. Coordinates use the bottom-left panel corner
 as the origin, with the thickness extending from Z=0 to Z=2 mm.
 The file opens with the finished panel visible and a top view centered and
 zoomed to include the whole model.
+Construction geometry represents the PCB outline. Named `BoardOffsetX` and
+`BoardOffsetY` dimensions locate it relative to the panel's lower-left corner,
+and component cutouts have named offsets relative to the PCB's lower-left
+corner. Mounting holes are constrained to the corresponding panel corners.
+Edit these sketch dimensions to adjust placement or hole sizes; all the
+geometry remains editable without fixed/block constraints. When an offset
+is zero, an alignment or coincidence constraint replaces that dimension.
 Panels from 2 through 8 HP have two 3.2 mm mounting holes, 7.5 mm from the
 left edge and 3 mm from the top and bottom; wider panels have a second column
 7.5 mm from the right edge. 1 HP panels have no mounting holes.

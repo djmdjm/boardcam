@@ -761,7 +761,8 @@ def output_eurorack_freecad(args, panelbrd):
 			    y=eurorack_height - (component.rect_y1 + yoff) -
 			    rect_height * math.cos(theta)))
 	job = dict(width=hp * 5.08, height=eurorack_height, thickness=2.0,
-	    hp=hp, cutouts=cutouts)
+	    hp=hp, cutouts=cutouts,
+	    board=dict(x=xoff, y=yoff, width=width, height=height))
 	try:
 		freecad_panel.write_model(job, args.freecad_output,
 		    args.freecad_command)
