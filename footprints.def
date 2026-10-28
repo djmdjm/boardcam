@@ -12,6 +12,7 @@
 "E-Switch:SW_Toggle_DP3T_ESwitch_100DP6" hole(6.5)
 "LED_THT:LED_D3.0mm-3" offset(2.54, 0.0) hole(3.2)
 "LED_THT:LED_D3.0mm" offset(1.27, 0.0) hole(3.2)
+"LED_THT:LED_D5.0mm" offset(1.27, 0.0) hole(5.4)
 "MountingHole:MountingHole_2.7mm_M2.5_ISO14580" hole(2.7) permit_back
 "MountingHole:MountingHole_3.2mm_M3" hole(3.2) permit_back
 "Multicomp:SW_Toggle_DPDT_Multicomp_2MD1T2B2M2RE" hole(5.5)
