@@ -725,6 +725,12 @@ def output_eurorack_openscad(args, panelbrd):
 	print("}")
 
 def output_eurorack_freecad(args, panelbrd):
+	output_eurorack_model(args, panelbrd, args.freecad_output, 'freecad')
+
+def output_eurorack_stl(args, panelbrd):
+	output_eurorack_model(args, panelbrd, args.stl_output, 'stl')
+
+def output_eurorack_model(args, panelbrd, filename, output_format):
 	bounds = panelbrd.board_bounds
 	if bounds is None:
 		bounds = panelbrd.bounds
@@ -764,11 +770,12 @@ def output_eurorack_freecad(args, panelbrd):
 	    hp=hp, cutouts=cutouts,
 	    board=dict(x=xoff, y=yoff, width=width, height=height))
 	try:
-		freecad_panel.write_model(job, args.freecad_output,
-		    args.freecad_command)
+		freecad_panel.write_model(job, filename, args.freecad_command,
+		    output_format=output_format)
 	except (OSError, RuntimeError) as err:
 		raise SystemExit(str(err))
-	print("FreeCAD model written to {}".format(args.freecad_output),
+	print("{} model written to {}".format(
+	    'STL' if output_format == 'stl' else 'FreeCAD', filename),
 	    file=sys.stderr)
 
 if __name__ == '__main__':
@@ -780,6 +787,7 @@ if __name__ == '__main__':
 		"eurorack_openscad": output_eurorack_openscad,
 		"eurorack_svg": output_eurorack_svg,
 		"eurorack_freecad": output_eurorack_freecad,
+		"eurorack_stl": output_eurorack_stl,
 		"gcode": gcode.output_gcode,
 	}
 	parser = argparse.ArgumentParser()
@@ -808,6 +816,9 @@ if __name__ == '__main__':
 	    default="panel.FCStd")
 	parser.add_argument("--freecad_command",
 	    help="path to FreeCADCmd/freecadcmd (default: search PATH)")
+	parser.add_argument("--stl_output",
+	    help="output .stl file for eurorack_stl (default: panel.stl)",
+	    default="panel.stl")
 	parser.add_argument("--gcode_cutout_panel",
 	    help="G-code should include cutout of Eurorack panel",
 	    default=False, type=bool)

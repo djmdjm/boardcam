@@ -90,6 +90,36 @@ App.closeDocument(doc.Name)
         self.assertTrue(report.exists(), result.stdout + result.stderr)
         return json.loads(report.read_text())
 
+    def inspect_mesh(self, filename, probes):
+        report = self.workdir / 'mesh_report.json'
+        script = self.workdir / 'inspect_mesh.py'
+        script.write_text('''import json
+import FreeCAD as App
+import Mesh
+import Part
+mesh = Mesh.Mesh({filename!r})
+bounds = mesh.BoundBox
+# Reconstruct the mesh as a faceted solid to test points through cutouts.
+shape = Part.Shape()
+shape.makeShapeFromMesh(mesh.Topology, 1e-6)
+solid = Part.makeSolid(shape)
+data = dict(closed=mesh.isSolid(), nonmanifold=mesh.hasNonManifolds(),
+            components=mesh.countComponents(), facets=mesh.CountFacets,
+            size=[bounds.XLength, bounds.YLength, bounds.ZLength],
+            volume=mesh.Volume,
+            probes=[solid.isInside(App.Vector(*p), 1e-7, True)
+                    for p in {probes!r}])
+with open({report!r}, 'w') as stream:
+    json.dump(data, stream)
+'''.format(filename=str(filename), probes=probes, report=str(report)))
+        result = subprocess.run(
+            [FREECAD, '--user-cfg', str(self.workdir / 'user.cfg'),
+             '--system-cfg', str(self.workdir / 'system.cfg'), str(script)],
+            capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(report.exists(), result.stdout + result.stderr)
+        return json.loads(report.read_text())
+
     def test_panel_dimensions_cutouts_rotation_and_visibility(self):
         board = pcbnew.BOARD()
 
@@ -186,15 +216,30 @@ App.closeDocument(doc.Name)
         # All corners must be visible in landscape, square and portrait views.
         for aspect in (0.5, 1, 2):
             viewport = coin.SbViewportRegion(int(600 * aspect), 600)
-            volume = coin.SoCamera.getViewVolume(camera, viewport,
-                                                 coin.SbViewportRegion())
+            view_volume = coin.SoCamera.getViewVolume(camera, viewport,
+                                                      coin.SbViewportRegion())
             for x in (0, 91.44):
                 for y in (0, 128.5):
                     for z in (0, 2):
-                        screen = volume.projectToScreen(coin.SbVec3f(x, y, z))
+                        screen = view_volume.projectToScreen(coin.SbVec3f(x, y, z))
                         for value in screen:
                             self.assertGreaterEqual(value, 0)
                             self.assertLessEqual(value, 1)
+
+        # Export the same fixture through the STL mode. Verify the actual
+        # reloaded mesh, including circular and arbitrarily rotated cutouts.
+        args.stl_output = str(self.workdir / 'panel with spaces.stl')
+        with contextlib.redirect_stderr(io.StringIO()):
+            board_cam.output_eurorack_stl(args, panel)
+        mesh = self.inspect_mesh(args.stl_output, probes)
+        self.assertTrue(mesh['closed'])
+        self.assertFalse(mesh['nonmanifold'])
+        self.assertEqual(mesh['components'], 1)
+        self.assertGreater(mesh['facets'], 0)
+        for actual, wanted in zip(mesh['size'], (91.44, 128.5, 2)):
+            self.assertAlmostEqual(actual, wanted, places=5)
+        self.assertAlmostEqual(mesh['volume'], volume, delta=1)
+        self.assertEqual(mesh['probes'], expected)
 
     def test_narrow_panel_mounting_holes(self):
         for hp, count in [(1, 0), (4, 2)]:
@@ -208,14 +253,17 @@ App.closeDocument(doc.Name)
                 self.assertAlmostEqual(report['volume'], expected, places=5)
 
     def test_failed_generation_preserves_existing_output(self):
-        output = self.workdir / 'existing.FCStd'
-        output.write_bytes(b'existing output')
         job = dict(width=20.32, height=128.5, thickness=2, hp=4,
                    cutouts=[dict(name='Oversized', shape='rectangle',
                                  width=1000, height=1000, x=-100, y=-100)])
-        with self.assertRaisesRegex(RuntimeError, 'generation failed'):
-            freecad_panel.write_model(job, str(output), FREECAD)
-        self.assertEqual(output.read_bytes(), b'existing output')
+        for output_format, extension in [('freecad', '.FCStd'), ('stl', '.stl')]:
+            with self.subTest(output_format=output_format):
+                output = self.workdir / ('existing' + extension)
+                output.write_bytes(b'existing output')
+                with self.assertRaisesRegex(RuntimeError, 'generation failed'):
+                    freecad_panel.write_model(job, str(output), FREECAD,
+                                             output_format=output_format)
+                self.assertEqual(output.read_bytes(), b'existing output')
 
 
 if __name__ == '__main__':

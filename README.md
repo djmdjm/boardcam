@@ -10,7 +10,7 @@ for laser-cutting or as the basis for artwork), OpenSCAD, GCode for a
 [CNC mill](https://youtu.be/DN982OtSqbw) or a CSV list of drill hits/cuts
 for manual machining.
 
-Native FreeCAD models of Eurorack panels are also supported.
+Native FreeCAD models and STL meshes of Eurorack panels are also supported.
 
 Most of my front panels are for eurorack synthesisers, so some of the
 output modes (e.g. GCode) make strong assumptions about panel dimensions,
@@ -58,6 +58,19 @@ Panels from 2 through 8 HP have two 3.2 mm mounting holes, 7.5 mm from the
 left edge and 3 mm from the top and bottom; wider panels have a second column
 7.5 mm from the right edge. 1 HP panels have no mounting holes.
 
+Generate an STL mesh of the same 2 mm thick panel:
+
+```
+$ ./board_cam.py --format=eurorack_stl --stl_output=panel.stl \
+      ~/projects/midicv/midicv.kicad_pcb
+```
+
+This writes `panel.stl` directly (the default output filename), using the same
+geometry, placement, and cutouts as the FreeCAD mode. The mesh uses an absolute
+surface tolerance of 0.01 mm and an angular tolerance of 5 degrees. STL has no
+unit metadata; the exported coordinates are in millimetres. The STL contains
+only the finished panel mesh; use `.FCStd` for the editable sketch and pad.
+
 ## Dependencies
 
 This tool requires Python 3.x, KiCad and its associated Python support to
@@ -67,8 +80,8 @@ If you want to use the SVG output mode then the
 [svgwrite](https://pypi.org/project/svgwrite/) Python module must also be
 installed.
 
-The `eurorack_freecad` output mode additionally requires FreeCAD's command-line
-executable (`FreeCADCmd` or `freecadcmd`) on `PATH`. Use `--freecad_command`
+The `eurorack_freecad` and `eurorack_stl` modes additionally require FreeCAD's
+command-line executable (`FreeCADCmd` or `freecadcmd`) on `PATH`. Use `--freecad_command`
 to specify its path if needed. FreeCAD runs without its GUI in a separate
 process, so its Python version can differ from KiCad's.
 

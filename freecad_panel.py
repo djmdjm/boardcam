@@ -1,4 +1,4 @@
-"""Build native FreeCAD panels in FreeCAD's own Python interpreter."""
+"""Build FreeCAD panels and STL meshes in FreeCAD's own Python interpreter."""
 
 import json
 import math
@@ -11,21 +11,25 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 
-def write_model(job, filename, command=None):
-    if not filename.lower().endswith('.fcstd'):
-        raise RuntimeError('FreeCAD output filename must end in .FCStd')
+def write_model(job, filename, command=None, output_format='freecad'):
+    extensions = {'freecad': '.FCStd', 'stl': '.stl'}
+    if output_format not in extensions:
+        raise RuntimeError('Unsupported model format: ' + output_format)
+    extension = extensions[output_format]
+    if not filename.lower().endswith(extension.lower()):
+        raise RuntimeError('Output filename must end in ' + extension)
     if command is None:
         command = shutil.which('FreeCADCmd') or shutil.which('freecadcmd')
     if command is None:
-        raise RuntimeError('FreeCADCmd/freecadcmd is required for FreeCAD output; '
+        raise RuntimeError('FreeCADCmd/freecadcmd is required for model output; '
                            'install FreeCAD or specify --freecad_command')
     filename = os.path.abspath(filename)
     # Generate beside the destination so publishing the completed file is an
     # atomic rename, and a failed FreeCAD run leaves existing output intact.
     with tempfile.TemporaryDirectory(prefix='.boardcam-freecad-',
                                      dir=os.path.dirname(filename)) as workdir:
-        output = os.path.join(workdir, 'panel.FCStd')
-        job = dict(job, output=output)
+        output = os.path.join(workdir, 'panel' + extension)
+        job = dict(job, output=output, output_format=output_format)
         job_path = os.path.join(workdir, 'panel.json')
         with open(job_path, 'w') as stream:
             json.dump(job, stream)
@@ -210,8 +214,17 @@ def build_panel(job):
               bounds.XMax, bounds.YMax, bounds.ZMax)
     if any(abs(a - b) > 1e-6 for a, b in zip(actual, expected)):
         raise ValueError('Cutouts extend beyond the panel outline')
-    doc.saveAs(job['output'])
-    save_view_state(doc, panel, job['output'])
+    if job.get('output_format', 'freecad') == 'stl':
+        import MeshPart
+        # Use absolute tolerances independent of FreeCAD's user preferences.
+        mesh = MeshPart.meshFromShape(Shape=panel.Shape, LinearDeflection=0.01,
+                                      AngularDeflection=math.radians(5), Relative=False)
+        if not mesh.isSolid():
+            raise ValueError('Panel did not produce a closed STL mesh')
+        mesh.write(job['output'])
+    else:
+        doc.saveAs(job['output'])
+        save_view_state(doc, panel, job['output'])
     App.closeDocument(doc.Name)
 
 
