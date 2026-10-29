@@ -8,7 +8,7 @@
 
 "Alcoswitch:SW_Tactile_FSM" offset(2, 0) hole(3.6)
 "Alpha:SW_Rotary_Alpha_SR1712F" hole(9.5)
-"ALPS:EC11K15" offset(-1.5, -1) hole(9.3)
+"ALPS:EC11K15" hole(9.3)
 "Connector_Audio:Jack_3.5mm_QingPu_WQP-PJ398SM_Vertical_CircularHoles" offset(0.0, 6.48) hole(6.8)
 "Connector_USB:USB_B_TE_5787834_Vertical" offset(-8.25, -4.75) rect(14, 13) # XXX not quite right
 "djm:ADM0802-FSY-YBS" offset(-19, -7.6) rect(37.8, 24.4)
