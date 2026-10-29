@@ -3,9 +3,9 @@
 # Required: either hole(diameter) or rect(width, height) to specify cutout shape
 # Optional: permit_back to force inclusion component on the back side of board
 
-"Alcoswitch:SW_Tactile_FSM" offset(-0.5, 0) hole(3.6)
+"Alcoswitch:SW_Tactile_FSM" offset(-2.5, 0) hole(3.6)
 "Alpha:SW_Rotary_Alpha_SR1712F" hole(9.5)
-"ALPS:EC11K15" offset(0.0, -2.0) hole(9.3)
+"ALPS:EC11K15" offset(-1.5, -2.0) hole(9.3)
 "Connector_Audio:Jack_3.5mm_QingPu_WQP-PJ398SM_Vertical_CircularHoles" offset(0.0, 6.48) hole(6.8)
 "Connector_USB:USB_B_TE_5787834_Vertical" offset(-8.25, -4.75) rect(14, 13) # XXX not quite right
 "djm:ADM0802-FSY-YBS" offset(-19, -7.6) rect(37.8, 24.4)
@@ -18,7 +18,7 @@
 "Multicomp:SW_Toggle_DPDT_Multicomp_2MD1T2B2M2RE" hole(5.5)
 "Multicomp:SW_Toggle_DPDT_Multicomp_2MS1T2B2M2RE" hole(5.5) # NB. incorrect name.
 "Multicomp:SW_Toggle_SPDT_Multicomp_2MS1T2B2M2RE" hole(5.5)
-"Newhaven_Display:M0216SD-162SDAR2-1" offset(-39, -12) rect(76.5, 26)
+"Newhaven_Display:M0216SD-162SDAR2-1" offset(-39.25, -12.25) rect(76.5, 26)
 "Thonk:Jack_3.5mm_Stereo_Thonk_Iconn_QingPu_WQP-PJ366ST_Vertical_CircularHoles_Smaller_Central" hole(6.8)
 "Thonk:Jack_3.5mm_Thonk_Iconn_QingPu_WQP-PJ398SM_Vertical_CircularHoles_Smaller_Central" hole(6.8)
 "Thonk:Jack_3.5mm_Thonk_Iconn_QingPu_WQP-PJ398SM_Vertical_CircularHoles_Smaller" offset(0.0, 6.48) hole(6.8)
